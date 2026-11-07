@@ -8,7 +8,8 @@ import ui;
 let FONT: const u8[:] = embed_file("data/Roboto-Regular.ttf");
 
 fn main() {
-    guard gfx::open("Goose Desktop App", 640, 480, gfx::WINDOW_RESIZABLE) else {
+    // 1. Le titre est défini ici sur la véritable fenêtre native du système
+    guard gfx::open("Mon Application Goose", 640, 480, gfx::WINDOW_RESIZABLE) else {
         write_stderr(str("Erreur gfx: ", gfx::error(), "\n"));
         return;
     }
@@ -21,7 +22,10 @@ fn main() {
 
     var counter = 0;
     var backdrop = ui::Colorf { 0.15, 0.18, 0.22, 1.0 };
-    let window_flags = ui::WINDOW_BORDER | ui::WINDOW_MOVABLE | ui::WINDOW_SCALABLE | ui::WINDOW_TITLE;
+
+    // 2. Plus de titre interne, plus de bordure, plus de déplacement :
+    //    On supprime BORDER, MOVABLE, SCALABLE et TITLE.
+    let window_flags = ui::WINDOW_NO_SCROLLBAR;
 
     while gfx::frame() {
         if gfx::key_pressed("Escape") {
@@ -30,12 +34,28 @@ fn main() {
 
         ui::input_from_gfx(ctx);
 
-        if ui::begin(ctx, "Mon Application Goose", ui::rect(50, 50, 340, 240), window_flags) {
-            ui::layout_row_dynamic(ctx, 30.0, 1);
-            // Correction ici : ui::TEXT_CENTERED
+        // 3. Récupère la taille réelle de la fenêtre (s'adapte si on la redimensionne)
+        let size = gfx::screen_size();
+
+        // 4. La zone UI commence en (0, 0) et couvre 100% de la fenêtre native
+        if ui::begin(ctx, "MainCanvas", ui::rect(0, 0, size.x as f32, size.y as f32), window_flags) {
+            
+            // Espaceur vertical pour aérer le haut
+            ui::layout_row_dynamic(ctx, 80.0, 1);
+            ui::label(ctx, "", ui::TEXT_LEFT);
+
+            // Compteur centré
+            ui::layout_row_dynamic(ctx, 35.0, 1);
             ui::label(ctx, str("Valeur actuelle : ", counter), ui::TEXT_CENTERED);
 
-            ui::layout_row_dynamic(ctx, 35.0, 3);
+            // Espaceur entre le compteur et les boutons
+            ui::layout_row_dynamic(ctx, 20.0, 1);
+            ui::label(ctx, "", ui::TEXT_LEFT);
+
+            // Boutons centrés (on découpe en 5 colonnes : marges à gauche et à droite)
+            ui::layout_row_dynamic(ctx, 45.0, 5);
+            ui::label(ctx, "", ui::TEXT_LEFT); // marge gauche
+
             if ui::button_label(ctx, "- Moins") {
                 counter--;
             }
@@ -46,12 +66,15 @@ fn main() {
                 counter++;
             }
 
-            ui::layout_row_dynamic(ctx, 25.0, 1);
-            // Correction ici : ui::TEXT_CENTERED
+            ui::label(ctx, "", ui::TEXT_LEFT); // marge droite
+
+            // Texte d'information en bas
+            ui::layout_row_dynamic(ctx, 50.0, 1);
             ui::label(ctx, "Application Windows native en Goose", ui::TEXT_CENTERED);
         }
         ui::end(ctx);
 
+        // Rendu
         gfx::begin_screen(float4 { backdrop.r, backdrop.g, backdrop.b, 1.0 });
         gfx::end_pass();
         
