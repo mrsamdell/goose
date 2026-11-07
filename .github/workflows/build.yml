@@ -1,1 +1,37 @@
+name: Compiler l'application Windows (.exe)
 
+on:
+  workflow_dispatch: # Permet de lancer la compilation manuellement en 1 clic
+  push:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      # 1. Récupérer votre code source
+      - name: Checkout du projet
+        uses: actions/checkout@v4
+
+      # 2. Cloner et préparer le compilateur Goose avec les modules UI et GFX
+      - name: Préparer le compilateur Goose
+        run: |
+          git clone --depth 1 https://github.com/aardappel/goose.git goose-tools
+          cd goose-tools
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DGOOSE_BUILTIN_LIBS=all
+          cmake --build build --config Release
+          cd ..
+
+      # 3. Compiler votre code Goose en exécutable Windows natif
+      - name: Compiler app.goose en .exe
+        shell: cmd
+        run: |
+          goose-tools\build\Release\goose.exe build app.goose
+
+      # 4. Mettre à disposition l'exécutable pour le téléchargement
+      - name: Publier l'exécutable (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Application-Windows-Goose
+          path: app.exe
